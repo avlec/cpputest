@@ -55,33 +55,58 @@
 #define TEST_TEARDOWN() \
   virtual void teardown() _override
 
-#define TEST(testGroup, testName) \
+std::tuple<int, int> x[] = {
+  {1,2}
+};
+
+#define TEST_PARAMETERIZED(testGroup, testName, ...) \
   /* External declarations for strict compilers */ \
-  class TEST_##testGroup##_##testName##_TestShell; \
+  struct TEST_##testGroup##_##testName##_TestShell; \
   extern TEST_##testGroup##_##testName##_TestShell TEST_##testGroup##_##testName##_TestShell_instance; \
   \
-  class TEST_##testGroup##_##testName##_Test : public TEST_GROUP_##CppUTestGroup##testGroup \
-{ public: TEST_##testGroup##_##testName##_Test () : TEST_GROUP_##CppUTestGroup##testGroup () {} \
-       void testBody() _override; }; \
+  struct TEST_##testGroup##_##testName##_Test : public TEST_GROUP_##CppUTestGroup##testGroup { \
+      TEST_##testGroup##_##testName##_Test () : TEST_GROUP_##CppUTestGroup##testGroup () {} \
+      void testBody() _override { for (auto parameters : arguments) { parameterizedTestBody(parameters); } }; \
+      private: void parameterizedTestBody(std::remove_reference<decltype(*arguments)> parameters); \
+  }; \
   class TEST_##testGroup##_##testName##_TestShell : public UtestShell { \
       virtual Utest* createTest() _override { return new TEST_##testGroup##_##testName##_Test; } \
   } TEST_##testGroup##_##testName##_TestShell_instance; \
-  static TestInstaller TEST_##testGroup##_##testName##_Installer(TEST_##testGroup##_##testName##_TestShell_instance, #testGroup, #testName, __FILE__,__LINE__); \
-    void TEST_##testGroup##_##testName##_Test::testBody()
+  static TestInstaller TEST_##testGroup##_##testName##_Installer(TEST_##testGroup##_##testName##_TestShell_instance, #testGroup, #testName, __FILE__, __LINE__); \
+  \
+  void TEST_##testGroup##_##testName##_Test::parameterizedTestBody(std::remove_reference<decltype(*arguments)> parameters)
+
+#define TEST(testGroup, testName) \
+  /* External declarations for strict compilers */ \
+  struct TEST_##testGroup##_##testName##_TestShell; \
+  extern TEST_##testGroup##_##testName##_TestShell TEST_##testGroup##_##testName##_TestShell_instance; \
+  \
+  struct TEST_##testGroup##_##testName##_Test : public TEST_GROUP_##CppUTestGroup##testGroup { \
+      TEST_##testGroup##_##testName##_Test () : TEST_GROUP_##CppUTestGroup##testGroup () {} \
+      void testBody() _override; \
+  }; \
+  class TEST_##testGroup##_##testName##_TestShell : public UtestShell { \
+      virtual Utest* createTest() _override { return new TEST_##testGroup##_##testName##_Test; } \
+  } TEST_##testGroup##_##testName##_TestShell_instance; \
+  static TestInstaller TEST_##testGroup##_##testName##_Installer(TEST_##testGroup##_##testName##_TestShell_instance, #testGroup, #testName, __FILE__, __LINE__); \
+  \
+  void TEST_##testGroup##_##testName##_Test::testBody()
 
 #define IGNORE_TEST(testGroup, testName)\
   /* External declarations for strict compilers */ \
   class IGNORE##testGroup##_##testName##_TestShell; \
   extern IGNORE##testGroup##_##testName##_TestShell IGNORE##testGroup##_##testName##_TestShell_instance; \
   \
-  class IGNORE##testGroup##_##testName##_Test : public TEST_GROUP_##CppUTestGroup##testGroup \
-{ public: IGNORE##testGroup##_##testName##_Test () : TEST_GROUP_##CppUTestGroup##testGroup () {} \
-  public: void testBody() _override; }; \
+  struct IGNORE##testGroup##_##testName##_Test : public TEST_GROUP_##CppUTestGroup##testGroup { \
+      IGNORE##testGroup##_##testName##_Test () : TEST_GROUP_##CppUTestGroup##testGroup () {} \
+      void testBody() _override; \
+  }; \
   class IGNORE##testGroup##_##testName##_TestShell : public IgnoredUtestShell { \
       virtual Utest* createTest() _override { return new IGNORE##testGroup##_##testName##_Test; } \
   } IGNORE##testGroup##_##testName##_TestShell_instance; \
-   static TestInstaller TEST_##testGroup##testName##_Installer(IGNORE##testGroup##_##testName##_TestShell_instance, #testGroup, #testName, __FILE__,__LINE__); \
-    void IGNORE##testGroup##_##testName##_Test::testBody ()
+  static TestInstaller TEST_##testGroup##testName##_Installer(IGNORE##testGroup##_##testName##_TestShell_instance, #testGroup, #testName, __FILE__,__LINE__); \
+  \
+  void IGNORE##testGroup##_##testName##_Test::testBody ()
 
 #define IMPORT_TEST_GROUP(testGroup) \
   extern int externTestGroup##testGroup;\
